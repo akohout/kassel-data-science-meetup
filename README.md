@@ -7,6 +7,7 @@ Check the according date folders and look for the according presentation.
 ## 2018-06-26
 
 * Intro
+* Ansätze und Vorgehen bei Data Science Projekten
 
 ## 2018-02-27
 
