@@ -4,10 +4,16 @@ Slides, scripts, and what else from the Kassel Data-Science meetups (https://www
 
 Check the according date folders and look for the according presentation.
 
+## 2018-06-26
+
+* Intro
 
 ## 2018-02-27
 
 * Intro
+* Skill Profile
+* Fußball Ergebnis Prediction
+* Convolutional Neural Nets
 
 
 ## 2017-12-05
