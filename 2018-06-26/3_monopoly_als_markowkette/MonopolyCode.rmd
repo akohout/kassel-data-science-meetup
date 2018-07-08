@@ -1,0 +1,344 @@
+---
+title: "Monopoly als Markowkette"
+output: html_document
+---
+
+```{r include = FALSE}
+library(knitr)
+library(markovchain)
+library(markdown)
+library(tidyverse)
+```
+Zunächst berechnen wir die Matrix der Übergangswahrscheinlichkeiten. Dazu berechnen wir die 
+einzelnen Matrizen. Als erstes berechnen wir die Übergangswahrscheinlichkeiten der Matrix **A**,
+also die Übergänge mit einem Würfelwurf (also kein Pasch).
+
+```{r eval = TRUE, echo = FALSE}
+states <- 1:40
+
+transProb <- matrix(rep(NA, 1600), 40, 40)
+
+for (i in states){
+  for (j in states){
+    if(i != 31 & j != 31){
+      start <- i
+      end <- j
+      if (start > end ){
+        end <- end + 40
+      }
+      diff <- end - start
+      
+      if (diff %in% c(3,4,10,11)){
+        transProb[i,j] <- 2
+      }
+      else if (diff %in% c(5,6,8,9)){
+        transProb[i,j] <- 4
+      }
+      
+      else if (diff== 7){
+        transProb[i,j] <- 6
+      }
+      else {
+        transProb[i,j] <- 0
+      }
+      
+    } else {
+      transProb[i,j] <- 0
+    }
+    
+  }
+}
+transProb <- transProb / 36
+A <- transProb
+```
+
+Die Matrix **B** besteht aus den Übergängen von einem Zustand in einen einfach gestrichenen
+Zusatnd (durch Wurf eines Paschs).
+
+```{r echo = FALSE, eval = TRUE}
+for (i in states){
+  for (j in states){
+    if (i != 31 & j != 31){
+      a <- j
+      if ( i > a){
+        a <- a + 40 
+      }
+      diff <- a - i
+      if (diff %in% c(2,4,6,8,10,12)){
+        transProb[i,j] <- 1
+      }
+      else {
+        transProb[i,j] <- 0
+      }
+    } else {
+      transProb[i,j] <- 0
+    }
+  }
+}
+B <- transProb / 36
+```
+
+Transfer durch Ereignisfelder 
+
+```{r echo = TRUE, eval = TRUE}
+chanceSquares <- c(8,23,37)
+A[,5] <- A[,5] + A[,8] * 1/16
+A[,19] <- A[,19] + A[,23] * 1/16
+A[,34] <- A[,34] + A[,37] * 1/16
+
+chanceDest <- c(1,6,12,25,40)
+A[,chanceDest] <- A[,chanceDest] + rowSums(A[,chanceSquares]) * 1/16
+
+
+B[,5] <- B[,5] + B[,8] * 1/16
+B[,19] <- B[,19] + B[,23] * 1/16
+B[,34] <- B[,34] + B[,37] * 1/16
+
+B[,chanceDest] <- B[,chanceDest] + rowSums(B[,chanceSquares]) * 1/16
+
+A[,chanceSquares] <- A[,chanceSquares] * 9/16
+B[,chanceSquares] <- B[,chanceSquares] * 9/16
+```
+
+
+Transfer durch Gemeinschaftsfelder
+
+```{r echo = TRUE, eval = TRUE}
+# Verkehrsfelder
+A[,6] <- A[,6] + A[,3] * 1/16
+A[,26] <- A[,26] + A[,18] * 1/16
+A[,36] <- A[,36] + A[,34] * 1/16
+
+communitySquares <- c(3,18,34)
+A[,1:2] <- A[,1:2] + rowSums(A[,communitySquares]) * 1/16
+
+# Verkehrsfelder
+B[,6] <- B[,6] + B[,3] * 1/16
+B[,26] <- B[,26] + B[,18] * 1/16
+B[,36] <- B[,36] + B[,34] * 1/16
+
+B[,1:2] <- B[,1:2] + rowSums(B[,communitySquares]) * 1/16
+
+
+A[,communitySquares] <- A[,communitySquares] * 12/16
+B[,communitySquares] <- B[,communitySquares] * 12/16
+
+```
+
+Berechnung der Gefängnismatrizen $J_{3}$ und $J_{4}$
+
+
+```{r echo = FALSE, eval = TRUE}
+unprimedJail <- matrix(rep(NA, 120),40,3) 
+unprimedJail[,2] <- 0
+unprimedJail[,3] <- 0
+for (i in 1:40){
+  diff <- 31 - i
+  if (diff %in% c(2,12)){
+    unprimedJail[i,1] <- 1/36
+  }
+  else if (diff %in% c(3,11)){
+    unprimedJail[i,1] <- 2/36
+  }
+  else if (diff %in% c(4,10)){
+    unprimedJail[i,1] <- 3/36
+  }
+  else if (diff %in% c(5,9)){
+    unprimedJail[i,1] <- 4/36
+  }
+  else if (diff %in% c(6,8)){
+    unprimedJail[i,1] <- 5/36
+  }
+  else if (diff == 7){
+    unprimedJail[i,1] <- 6/36
+  } else{
+    unprimedJail[i,1] <- 0
+  }
+}
+
+twoPrimedJail <- matrix(rep(0,120),40,3)
+for (i in c(1:30,32:40)){
+  twoPrimedJail[i,1] <- 1/6
+  diff <- 31 - i
+  if (diff %in% c(3,4,10,11)){
+    twoPrimedJail[i,1] <- twoPrimedJail[i,1] + 2/36
+  }
+  else if (diff %in% c(5,6,8,9)){
+    twoPrimedJail[i,1] <- twoPrimedJail[i,1] + 4/36
+  }
+  else if (diff == 7){
+    twoPrimedJail[i,1] <-  twoPrimedJail[i,1] + 6/36
+  }
+}
+
+twoPrimedJail[,1] <- twoPrimedJail[,1] + rowSums(A[,c(chanceSquares, communitySquares)])  * 1/16 
+
+
+```
+
+Wahrscheinlichkeiten durch eine Ereignis- bzw. Gemeinschaftskarte ins Gefägnis zu kommen.
+
+```{r eval = TRUE, echo = TRUE}
+unprimedJail[,1] <- unprimedJail[,1] + (rowSums(A[,c(communitySquares, chanceSquares)])+ rowSums(B[,c(communitySquares, chanceSquares)])) * 1/16
+rowSums(A) + rowSums(twoPrimedJail)
+```
+
+
+Berechnungen der Matrizen $J_{1},~J_{2}$ und $J_{5}$
+
+```{r eval = TRUE, echo = FALSE}
+p <- 0
+jailToUnprimed <- matrix(rep(0,120),3,40)
+jailToUnprimed[1,] <- p * A[11,] + (1-p) * B[11,]
+jailToUnprimed[2,] <- p * A[11,] + (1-p) * B[11,]
+jailToUnprimed[3,] <- A[11,]
+
+jailToPrimed <- matrix(rep(0,120),3,40)
+jailToPrimed[1,] <- p * B[11,]
+jailToPrimed[2,] <- p * B[11,]
+jailToPrimed[3,] <- B[11,]
+
+jailToJail <- matrix(rep(0,9),3,3)
+jailToJail[1,2] <- (1-p) * 5 /6
+jailToJail[2,3] <- (1-p) * 5 /6
+## Entfernung des "Gehe ins Gefängnis"-Feld
+A <- A[-31,-31]
+B <- B[-31,-31]
+unprimedJail <- unprimedJail[-31,]
+twoPrimedJail <- twoPrimedJail[-31,]
+jailToPrimed <- jailToPrimed[,-31]
+jailToUnprimed <- jailToUnprimed[,-31]
+```
+
+Zusammensetzung der Blöcke der Übergangsmatrix.
+
+```{r eval = TRUE, echo = TRUE}
+I <- diag(rep(1,39))
+
+topLeft <- (I + B + (B %*% B)) %*% A
+topRight <- unprimedJail + (B %*% unprimedJail) + (B %*% B %*% twoPrimedJail)
+botLeft <- jailToUnprimed + (jailToPrimed %*% (I + B) %*% A)
+botRight <- jailToJail + (jailToPrimed %*% unprimedJail) + (jailToPrimed %*% B %*% twoPrimedJail)
+```
+
+Zusammensetzen der Übergangsmatrix und Berechnen der stationären Verteilung als Grenzwert der 
+Übergänge.
+
+```{r eval = TRUE, echo = TRUE}
+P <- rbind(cbind(topLeft,topRight),cbind(botLeft,botRight))
+for (i in 1:nrow(P)){
+  P[i,] <- P[i,] / sum(P[i,])
+}
+limitP <- P
+for (i in 1:30){
+  limitP <- limitP %*% P
+}
+pi <- limitP[1,]
+```
+
+Berechnung der stationären Verteilung mit dem R Paket *markovchain*
+```{r eval = TRUE, echo = FALSE}
+states <- c("Los", "Konrad-Adenauer-Straße", "Gemeinschaftsfeld 1", "Heinrich-Schütz-Allee", "Einkommenssteuer",
+            "ICE-Bahnhof Wilhelmshöhe", "Wilhelmshöher Allee", "Ereignisfeld 1", "Freiherr-vom-Stein Straße",
+            "Goethestraße", "Gefängnisbesuch", "Friedrich-Ebert-Straße", "E-Werk", "August-Bebel-Platz",
+            "Kölnische Straße", "Bahnhof Harleshausen", "Ständeplatz", "Gemeinschaftsfeld 2", "Fünffensterstraße",
+            "Brüder-Grimm-Platz", "Frei Parken", "Frankfurter Straße", "Ereignisfeld 2", "Schöne Aussicht", "Steinweg",
+            "Hafen", "Altmarkt", "Wolfsschlucht", "Wasserwerk", "Königsplatz", "Treppenstraße",
+            "Friedrichsplatz", "Gemeinschaftsfeld 3", "Karlsplatz", "Hauptbahnhof", "Ereignisfeld 3",
+            "Wilhelmsstraße", "Zusatzsteuer", "Obere Königsstraße", "Gefängnis 1", "Gefängnis 2", "Gefängnis 3")
+```
+
+Definieren eines *markovchain* Objekts.
+```{r eval = TRUE, echo = TRUE}
+monopMark <- new("markovchain", states = states, transitionMatrix = P, byrow = TRUE)
+```
+
+Berechnung der stationären Verteilung.
+
+```{r eval = TRUE, echo = TRUE}
+statProb <- steadyStates(monopMark)[1,]
+```
+
+```{r eval = TRUE, echo = FALSE}
+kable(t(steadyStates(monopMark)))
+```
+
+Berechnungen der erwarteten Einnahmen/Verluste durch *Los*, Steuern, Gefägnis,...
+```{r eval = TRUE, echo = FALSE}
+throwGo <- (statProb[29] + 3 * statProb[30] + 10 * statProb[31] + 15 * statProb[32] + 21 * statProb[33] + 26 * statProb[34] + 30 * statProb[35] +
+        33 * statProb[36] + 35 * statProb[37] + 36 * statProb[38] + 36 * statProb[39]) / 36
+
+cardGo <- (2 * statProb[10] /9) + (statProb[23] / 3) + (statProb[36] * 4 / 9) + ((statProb[3] + statProb[18] + statProb[31]) / 12)
+
+
+go <- 200 * (throwGo + cardGo)
+names(go) <- "Einnahmen durch Los"
+go
+tax <- 100 * statProb[5] + 200 * statProb[38]
+names(tax) <- "Verlust durch Steuern"
+tax
+
+prizeChance <- (50 - 150 -50 + 50 + 150 + 100 - 15)/16
+expPrizeChance <- prizeChance * (statProb[8] + statProb[23] + statProb[36])
+
+prizeComm <- (10 + 50 + 100 + 20 - 10 + 200 + 100 + 25 + 50 - 50 - 100)/16
+expPrizeComm <- prizeComm * (statProb[3] + statProb[18] + statProb[33])
+
+names(expPrizeChance) <- "Einnahmen durch Ereigniskarten"
+names(expPrizeComm) <- "Einnahmen durch Gemeinschaftskarten"
+expPrizeChance
+expPrizeComm
+jailFee <- 50 * (p * statProb[40] + p * statProb[41] + (5 * statProb[42]/6))
+names(jailFee) <- "Verlust durch Kaution"
+jailFee
+rent <- c(2,4,25,6,6,8,10,28,10,12,25,14,14,16,18,18,20,25,22,22,28,24,26,26,28,25,35,50)
+properties <- c(2,4,6,7,9,10,12,13,14,15,16,17,19,20,22,24,25,26,27,28,29,30,31,32,34,35,37,39)
+hotelRent <- c(250,450,200,550,550,600,750,70,750,900,200,950,950,1000,1050,1050,1100,200,1150,
+               1150, 70,1200,1275,1275,1400,200,1500,2000)
+
+## Kaufpreis
+price <- c(60,60,200,100,100,120,140,150,140,160,200,180,180,200,120,220,240,200,260,260,150,
+           280,300,300,320,200,350,400)
+
+hotelPrice <- price + c(250,250,800,250,250,250,500,300,500,500,800,500,500,500,600,600,600,
+                        800,600,600,300,600,1000,1000,1000,800,1000,1000)
+
+
+```
+
+Erwartete Mieteinnahmen
+```{r eval = TRUE, echo = TRUE}
+expectedRent <- rent * statProb[properties]
+# expectedRewards(markovchain = monopMark, n = 1000, rewards = rent)
+expectedHotelRent <- hotelRent * statProb[properties]
+
+
+renditeUnbebaut <- 100 * expectedRent / price 
+renditeHotel <- 100 * expectedHotelRent / hotelPrice
+```
+
+```{r eval = TRUE, echo = FALSE}
+kable(expectedRent, caption = "Erwartete Mieteinnahmen - unbebaute Grundstücke")
+kable(expectedHotelRent, caption = "Erwartete Mieteinnahmen - Hotels")
+kable(renditeUnbebaut, caption = "Rendite - unbebaute Grundstücke")
+kable(renditeHotel, caption = "Rendite Hotels")
+```
+
+Simulation durch Zufallsübergänge
+```{r eval = TRUE, echo = TRUE}
+markovchainSequence(n = 1000, monopMark, t0 = "Los", include.t0 = TRUE)
+absorbingStates(monopMark)
+transientStates(monopMark)
+communicatingClasses(monopMark)
+period(monopMark)
+```
+
+Relative Häufigkeiten der einzelnen Felder
+```{r eval = TRUE, echo = FALSE}
+a <- table(markovchainSequence(n = 100000, monopMark, t0 = "Los", include.t0 = TRUE)) / 100000 
+a <- a[rev(order(a))]
+df <- data.frame(Feld = names(a), Wahrscheinlichkeit = a)[,-2]
+kable(df, caption = "Simulation mit markovchainSequence")
+```
+
+

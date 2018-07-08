@@ -8,6 +8,8 @@ Check the according date folders and look for the according presentation.
 
 * Intro
 * Ansätze und Vorgehen bei Data Science Projekten
+* Monopoly als Markowkette
+
 
 ## 2018-02-27
 
