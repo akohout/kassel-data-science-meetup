@@ -4,6 +4,19 @@ Slides, scripts, and what else from the Kassel Data-Science meetups (https://www
 
 Check the according date folders and look for the according presentation.
 
+
+## 2019-02-19
+
+* Intro
+* Fooling Neural Networks
+* Wie man einer KI das Spielen bei bringt
+
+## 2018-09-05
+
+* Intro
+* Kaggle, Hauspreis Vorhersage und interpretation von Random Forest Modellen
+* TypeMapper - Vehicle Type Mapping with Machine Learning
+
 ## 2018-06-26
 
 * Intro
