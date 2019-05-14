@@ -11,6 +11,12 @@ Check the according date folders and look for the according presentation.
 * Fooling Neural Networks
 * Wie man einer KI das Spielen bei bringt
 
+## 2018-11-20
+
+* Intro
+* Chatbot Intro
+* Spotify Audio Features
+
 ## 2018-09-05
 
 * Intro
