@@ -4,6 +4,10 @@ Slides, scripts, and what else from the Kassel Data-Science meetups (https://www
 
 Check the according date folders and look for the according presentation.
 
+## 2020-02-18
+
+* Taking a closer look at the "I" in AI
+* Experimentation Framework
 
 ## 2019-02-19
 
